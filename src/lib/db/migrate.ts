@@ -43,7 +43,7 @@ export function runCustomMigrations() {
   if (configCount.count === 0) {
     sqlite.prepare(`
       INSERT INTO search_config (id, zip, fb_location, radius_miles, price_max, mileage_max, year_min, year_max, makes_models, cron_interval, fb_enabled)
-      VALUES (1, NULL, NULL, 150, 1500000, 200000, 2005, 2025, '[]', 30, 0)
+      VALUES (1, '92648', 'orangecounty', 100, 1200000, 120000, 2014, 2026, '["Toyota Corolla","Toyota Camry","Toyota Yaris","Honda Civic","Honda Accord","Honda Fit","Hyundai Elantra","Hyundai Sonata"]', 60, 0)
     `).run();
   }
 

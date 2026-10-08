@@ -1,0 +1,10 @@
+packages:
+  - '.'
+  - 'vendor/car-deals-mcp'
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  msw: false
+  puppeteer: true

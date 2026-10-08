@@ -26,7 +26,7 @@ export default function DashboardPage() {
     useQuery<PaginatedResponse<Listing>>({
       queryKey: ['listings', { viewStatus: 'new', limit: '10' }],
       queryFn: () =>
-        fetch('/api/listings?viewStatus=new&limit=10').then(r => r.json()),
+        fetch('/api/listings?viewStatus=new&limit=10&sortBy=deal_score').then(r => r.json()),
     });
 
   const { data: scrapeStatus } = useScrapeStatus();
@@ -37,12 +37,18 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            Your truck search overview
+            Orange County & Southern California • Advertised price ≤ $12,000 • 2014+ • 120,000 mi hard max
           </p>
         </div>
         <ScanButton />
       </div>
 
+      <section className="rounded-xl border p-4 text-sm space-y-2">
+        <p><strong>Live sources unavailable:</strong> Cars.com, AutoTrader and KBB returned no listings in the October 8, 2026 check. Import permitted listings to start; automatic scanning is off by default.</p>
+        <p>Prefer mileage below 100,000, clean title, low owners, personal use and dealers rated 4+.</p>
+        <p>Unknown title or distance is marked for verification. Scores compare asking prices, not sale prices. Advertised prices exclude tax, registration and possible fees.</p>
+        <Link href="/import" className="text-primary underline">Import permitted listings / view source status</Link>
+      </section>
       {/* Stats */}
       <StatsCards />
 
@@ -72,7 +78,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
-            No new listings. Run a scan to find trucks.
+            No new listings. Run a scan to find cars.
           </div>
         )}
       </section>

@@ -1,24 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { listings, scrapeRuns } from '@/lib/db/schema';
-import { eq, count, avg, desc, sql } from 'drizzle-orm';
-
+import { listings, scrapeRuns, searchConfig } from '@/lib/db/schema';
+import { desc } from 'drizzle-orm';
+import { explainScore } from '@/lib/deal-policy';
 export async function GET() {
-  const [totalResult, newResult, favResult, avgScoreResult, sourceBreakdown, lastScrape] = await Promise.all([
-    db.select({ count: count() }).from(listings).where(eq(listings.isDismissed, false)),
-    db.select({ count: count() }).from(listings).where(eq(listings.viewStatus, 'new')),
-    db.select({ count: count() }).from(listings).where(eq(listings.isFavorited, true)),
-    db.select({ avg: avg(listings.dealScore) }).from(listings).where(eq(listings.isDismissed, false)),
-    db.select({ source: listings.source, count: count() }).from(listings).where(eq(listings.isDismissed, false)).groupBy(listings.source),
-    db.select().from(scrapeRuns).orderBy(desc(scrapeRuns.startedAt)).limit(1),
-  ]);
-
-  return NextResponse.json({
-    totalListings: totalResult[0]?.count ?? 0,
-    newCount: newResult[0]?.count ?? 0,
-    favoritesCount: favResult[0]?.count ?? 0,
-    avgDealScore: Math.round((Number(avgScoreResult[0]?.avg) || 0) * 10) / 10,
-    lastScrapeAt: lastScrape[0]?.startedAt ?? null,
-    sourceBreakdown: sourceBreakdown.map(r => ({ source: r.source, count: r.count })),
-  });
+ const config=db.select().from(searchConfig).get()!;
+ const all=db.select().from(listings).all();
+ const rows=all.filter(r=>!r.isDismissed && explainScore(r,config,all).assessment.eligible);
+ const sources=new Map<string,number>(); for(const r of rows) sources.set(r.source,(sources.get(r.source)||0)+1);
+ const last=db.select().from(scrapeRuns).orderBy(desc(scrapeRuns.startedAt)).get();
+ return NextResponse.json({totalListings:rows.length,newCount:rows.filter(r=>r.viewStatus==='new').length,favoritesCount:rows.filter(r=>r.isFavorited).length,avgDealScore:rows.length ? Math.round(rows.reduce((n,r)=>n+explainScore(r,config,all).score,0)/rows.length*10)/10:0,lastScrapeAt:last?.startedAt||null,sourceBreakdown:[...sources].map(([source,count])=>({source,count}))});
 }

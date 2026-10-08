@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { explainScore } from '@/lib/deal-policy';
+import { searchConfig } from '@/lib/db/schema';
 import { listings } from '@/lib/db/schema';
-import { and, eq, gte, lte, desc, asc, count } from 'drizzle-orm';
+import { and, eq, gte, lte, desc, asc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
   const viewStatus = params.get('viewStatus');
   const isFavorited = params.get('isFavorited');
   const isDismissed = params.get('isDismissed') ?? 'false';
-  const sortBy = params.get('sortBy') ?? 'first_seen_at';
+  const sortBy = params.get('sortBy') ?? 'deal_score';
   const sortDir = params.get('sortDir') ?? 'desc';
   const page = Math.max(1, Number(params.get('page') ?? '1'));
   const limit = Math.min(100, Math.max(1, Number(params.get('limit') ?? '20')));
@@ -47,15 +49,14 @@ export async function GET(request: NextRequest) {
 
   const orderFn = sortDir === 'asc' ? asc : desc;
 
-  const [data, totalResult] = await Promise.all([
-    db.select().from(listings).where(where).orderBy(orderFn(sortColumn)).limit(limit).offset((page - 1) * limit),
-    db.select({ count: count() }).from(listings).where(where),
-  ]);
-
-  return NextResponse.json({
-    data,
-    total: totalResult[0]?.count ?? 0,
-    page,
-    limit,
-  });
+  const config = db.select().from(searchConfig).get()!;
+  const allRows = db.select().from(listings).all();
+  let data = db.select().from(listings).where(where).orderBy(orderFn(sortColumn)).all()
+    .map(row => ({...row, dealExplanation: explainScore(row, config, allRows)}))
+    .filter(row => row.dealExplanation.assessment.eligible);
+  if (params.get('verifiedOnly') === 'true') data = data.filter(row => row.dealExplanation.assessment.verified);
+  if (params.get('preferredMileage') === 'true') data = data.filter(row => row.dealExplanation.assessment.preferredMileage);
+  if (sortBy === 'deal_score') data.sort((a,b) => (sortDir === 'asc' ? 1 : -1) * (a.dealExplanation.score-b.dealExplanation.score));
+  const total = data.length;
+  return NextResponse.json({data: data.slice((page-1)*limit, page*limit), total, page, limit});
 }

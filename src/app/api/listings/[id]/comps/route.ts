@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { comparableRows } from '@/lib/deal-policy';
 import { db } from '@/lib/db';
 import { listings } from '@/lib/db/schema';
 import { eq, and, gte, lte, not } from 'drizzle-orm';
@@ -34,10 +35,7 @@ export async function GET(
 
   const year = listing.year;
   const modelLower = (listing.model ?? '').toLowerCase();
-  let modelKey = '';
-  if (modelLower.includes('tacoma')) modelKey = 'tacoma';
-  else if (modelLower.includes('4runner')) modelKey = '4runner';
-  else if (modelLower.includes('tundra')) modelKey = 'tundra';
+  const modelKey = modelLower.split(' ')[0];
 
   if (!modelKey || !year) {
     return NextResponse.json({
@@ -46,22 +44,9 @@ export async function GET(
     });
   }
 
-  const allComps = db
-    .select()
-    .from(listings)
-    .where(
-      and(
-        not(eq(listings.isDismissed, true)),
-        gte(listings.year, year - 3),
-        lte(listings.year, year + 3),
-        gte(listings.price, 100000),
-      )
-    )
-    .all()
-    .filter((row) => (row.model ?? '').toLowerCase().includes(modelKey))
-    .filter((row) => row.id !== listingId); // exclude this listing
+  const allComps = comparableRows(listing, db.select().from(listings).all());
 
-  if (allComps.length < 2) {
+  if (allComps.length < 3) {
     return NextResponse.json({
       hasComps: false,
       message: `Only ${allComps.length} comparable listing(s) found`,
@@ -103,7 +88,7 @@ export async function GET(
   return NextResponse.json({
     hasComps: true,
     modelKey,
-    yearRange: `${year - 3}–${year + 3}`,
+    yearRange: `${year - 2}–${year + 2}`,
     compCount: allComps.length,
     listing: {
       price: listingPrice,

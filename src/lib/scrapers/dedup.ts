@@ -1,186 +1,33 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db';
 import { listings, priceHistory, searchConfig } from '../db/schema';
-import { computeDealScore } from '../scoring';
-import type { NewListing, ScrapeResult, Listing, SearchConfig } from '../types';
-
-function getConfigForScoring(): SearchConfig {
-  const row = db.select().from(searchConfig).limit(1).get();
-  if (!row) return {
-    id: 1, zip: null, fbLocation: null, radiusMiles: 150, priceMax: 1500000,
-    mileageMax: 200000, yearMin: 2005, yearMax: 2025,
-    makesModels: null, cronInterval: 30, fbEnabled: false, lastViewedAt: null,
-  };
-  return row as unknown as SearchConfig;
-}
-
-/**
- * Upsert a batch of listings into the DB, deduplicating by VIN or source+externalId.
- * Uses synchronous better-sqlite3 transactions (no async/await inside transaction callbacks).
- */
-export async function upsertListings(
-  newListings: NewListing[],
-  _source: string,
-): Promise<ScrapeResult> {
-  const config = getConfigForScoring();
-  let newCount = 0;
-  let updatedCount = 0;
-  const errors: string[] = [];
-
-  for (const listing of newListings) {
-    const now = new Date().toISOString();
-
+import { recomputeAllScores } from '../scoring';
+import type { NewListing, ScrapeResult } from '../types';
+export async function upsertListings(rows: NewListing[], _source: string): Promise<ScrapeResult> {
+  void _source;
+  const result: ScrapeResult = {new: 0, updated: 0, errors: []};
+  for (const row of rows) {
     try {
-      if (listing.vin) {
-        // Dedup by VIN — synchronous transaction
-        const existing = db
-          .select()
-          .from(listings)
-          .where(eq(listings.vin, listing.vin))
-          .limit(1)
-          .get();
-
+      if (!row.vin && !row.externalId && !row.url) throw new Error('Listing needs VIN, source ID or URL for deduplication');
+      const condition = row.vin ? eq(listings.vin, row.vin) : row.externalId ? and(eq(listings.source,row.source),eq(listings.externalId,row.externalId)) : and(eq(listings.source,row.source),eq(listings.url,row.url!));
+      const now = new Date().toISOString();
+      db.transaction(tx => {
+        const existing = tx.select().from(listings).where(condition).get();
+        const values = Object.fromEntries(Object.entries(row).filter(([,v])=>v != null));
         if (existing) {
-          const priceChanged = listing.price != null && listing.price !== existing.price;
-          const needsImage = !existing.imageUrl && listing.imageUrl;
-          const needsPrice = !existing.price && listing.price;
-          const needsMileage = !existing.mileage && listing.mileage;
-          const needsLocation = !existing.location && listing.location;
-          db.update(listings)
-            .set({
-              lastSeenAt: now,
-              ...(priceChanged ? { price: listing.price } : {}),
-              ...(needsImage ? { imageUrl: listing.imageUrl } : {}),
-              ...(needsPrice ? { price: listing.price } : {}),
-              ...(needsMileage ? { mileage: listing.mileage } : {}),
-              ...(needsLocation ? { location: listing.location } : {}),
-            })
-            .where(eq(listings.id, existing.id))
-            .run();
-
-          if (priceChanged) {
-            db.insert(priceHistory)
-              .values({ listingId: existing.id, price: listing.price ?? null, observedAt: now })
-              .run();
-          }
-          updatedCount++;
+          const evidence = {...JSON.parse(existing.evidence || '{}'), ...JSON.parse(row.evidence || '{}')};
+          tx.update(listings).set({...values, evidence: JSON.stringify(evidence),lastSeenAt:now}).where(eq(listings.id,existing.id)).run();
+          if(row.price != null && row.price !== existing.price) tx.insert(priceHistory).values({listingId:existing.id,price:row.price,observedAt:now}).run();
+          result.updated++;
         } else {
-          const listingRow = buildInsertRow(listing, now, config);
-          db.insert(listings).values(listingRow).run();
-          newCount++;
+          const added=tx.insert(listings).values({...row,firstSeenAt:now,lastSeenAt:now}).returning().get();
+          if(row.price != null) tx.insert(priceHistory).values({listingId:added.id,price:row.price,observedAt:now}).run();
+          result.new++;
         }
-      } else if (listing.externalId && listing.source) {
-        // Dedup by source + externalId
-        const existing = db
-          .select()
-          .from(listings)
-          .where(and(eq(listings.source, listing.source), eq(listings.externalId, listing.externalId)))
-          .limit(1)
-          .get();
-
-        if (existing) {
-          const priceChanged = listing.price != null && listing.price !== existing.price;
-          const needsImage = !existing.imageUrl && listing.imageUrl;
-          const needsPrice = !existing.price && listing.price;
-          const needsMileage = !existing.mileage && listing.mileage;
-          const needsLocation = !existing.location && listing.location;
-          db.update(listings)
-            .set({
-              lastSeenAt: now,
-              ...(priceChanged ? { price: listing.price } : {}),
-              ...(needsImage ? { imageUrl: listing.imageUrl } : {}),
-              ...(needsPrice ? { price: listing.price } : {}),
-              ...(needsMileage ? { mileage: listing.mileage } : {}),
-              ...(needsLocation ? { location: listing.location } : {}),
-            })
-            .where(eq(listings.id, existing.id))
-            .run();
-
-          if (priceChanged) {
-            db.insert(priceHistory)
-              .values({ listingId: existing.id, price: listing.price ?? null, observedAt: now })
-              .run();
-          }
-          updatedCount++;
-        } else {
-          const listingRow = buildInsertRow(listing, now, config);
-          db.insert(listings).values(listingRow).run();
-          newCount++;
-        }
-      } else {
-        // No dedup key — just insert
-        const listingRow = buildInsertRow(listing, now, config);
-        db.insert(listings).values(listingRow).run();
-        newCount++;
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[dedup] Error upserting listing:', msg, listing.url ?? listing.vin ?? listing.externalId);
-      errors.push(msg);
-    }
+      });
+    } catch(e) { result.errors.push(e instanceof Error ? e.message : String(e)); }
   }
-
-  return { new: newCount, updated: updatedCount, errors };
-}
-
-function buildInsertRow(
-  listing: NewListing,
-  now: string,
-  config: SearchConfig,
-): typeof listings.$inferInsert {
-  const partial: Listing = {
-    id: 0,
-    vin: listing.vin ?? null,
-    externalId: listing.externalId ?? null,
-    source: listing.source,
-    url: listing.url ?? null,
-    imageUrl: listing.imageUrl ?? null,
-    year: listing.year ?? null,
-    make: listing.make ?? null,
-    model: listing.model ?? null,
-    trim: listing.trim ?? null,
-    price: listing.price ?? null,
-    mileage: listing.mileage ?? null,
-    location: listing.location ?? null,
-    dealerName: listing.dealerName ?? null,
-    dealerType: listing.dealerType ?? null,
-    oneOwner: listing.oneOwner ?? null,
-    noAccidents: listing.noAccidents ?? null,
-    personalUse: listing.personalUse ?? null,
-    dealRating: listing.dealRating ?? null,
-    dealScore: null,
-    viewStatus: 'new',
-    isFavorited: false,
-    isDismissed: false,
-    favoritedAt: null,
-    firstSeenAt: now,
-    lastSeenAt: now,
-  };
-
-  return {
-    vin: listing.vin ?? null,
-    externalId: listing.externalId ?? null,
-    source: listing.source,
-    url: listing.url ?? null,
-    imageUrl: listing.imageUrl ?? null,
-    year: listing.year ?? null,
-    make: listing.make ?? null,
-    model: listing.model ?? null,
-    trim: listing.trim ?? null,
-    price: listing.price ?? null,
-    mileage: listing.mileage ?? null,
-    location: listing.location ?? null,
-    dealerName: listing.dealerName ?? null,
-    dealerType: listing.dealerType ?? null,
-    oneOwner: listing.oneOwner ?? false,
-    noAccidents: listing.noAccidents ?? false,
-    personalUse: listing.personalUse ?? false,
-    dealRating: listing.dealRating ?? null,
-    dealScore: computeDealScore(partial, config),
-    viewStatus: 'new',
-    isFavorited: false,
-    isDismissed: false,
-    firstSeenAt: now,
-    lastSeenAt: now,
-  };
+  const config=db.select().from(searchConfig).get();
+  if(config) recomputeAllScores(db,config);
+  return result;
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { VEHICLES } from '@/lib/deal-policy';
 import { useState, useEffect } from 'react';
 import { useConfig, useUpdateConfig } from '@/hooks/use-config';
 import { useScrapeStatus, useTriggerScrape } from '@/hooks/use-scrape';
@@ -34,10 +35,10 @@ export default function SettingsPage() {
       setZip(config.zip ?? '');
       setFbLocation(config.fbLocation ?? '');
       setRadiusMiles(String(config.radiusMiles ?? 150));
-      setPriceMax(String((config.priceMax ?? 1500000) / 100));
-      setMileageMax(String(config.mileageMax ?? 200000));
-      setYearMin(String(config.yearMin ?? 2005));
-      setYearMax(String(config.yearMax ?? 2025));
+      setPriceMax(String((config.priceMax ?? 1200000) / 100));
+      setMileageMax(String(config.mileageMax ?? 120000));
+      setYearMin(String(config.yearMin ?? 2014));
+      setYearMax(String(config.yearMax ?? new Date().getFullYear()));
       setCronInterval(String(config.cronInterval ?? 30));
       setFbEnabled(config.fbEnabled ?? false);
       try {
@@ -76,7 +77,7 @@ export default function SettingsPage() {
     });
   };
 
-  const vehicleOptions = ['Toyota Tacoma', 'Toyota 4Runner', 'Toyota Tundra', 'Toyota Highlander'];
+  const vehicleOptions = VEHICLES;
 
   const toggleVehicle = (vehicle: string) => {
     setMakesModels((prev) =>
@@ -267,6 +268,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Enable FB Marketplace</span>
               <Button
+                disabled
                 variant={fbEnabled ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => {
@@ -288,7 +290,7 @@ export default function SettingsPage() {
               <div className="flex items-start gap-2 p-3 rounded-md bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
                 <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Experimental — requires Facebook credentials and a disposable account.
+                  Unsupported — import permitted listings instead.
                   May violate Facebook ToS. Use at your own risk.
                 </p>
               </div>
@@ -305,7 +307,7 @@ export default function SettingsPage() {
               </p>
             </div>
             <p className="text-xs text-muted-foreground">
-              Configure FB_EMAIL and FB_PASSWORD in your .env.local file.
+              Automated Facebook access is disabled. Use the Import page for permitted exports.
             </p>
           </CardContent>
         </Card>

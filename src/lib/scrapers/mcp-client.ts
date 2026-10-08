@@ -56,6 +56,11 @@ async function callSearchTool(
   const args: Record<string, unknown> = {
     make,
     model,
+    radius: config.radiusMiles ?? 100,
+    yearMin: config.yearMin ?? 2014,
+    yearMax: config.yearMax ?? new Date().getFullYear(),
+    sources: (process.env.CAR_DEALS_SOURCES || "cars.com").split(","),
+    maxResults: 20,
     zip: config.zip ?? undefined,
   };
 
@@ -76,6 +81,7 @@ async function callSearchTool(
       { signal: controller.signal },
     );
 
+    if (result.isError) throw new Error("Source returned an error");
     const content = result.content;
     if (!Array.isArray(content)) return [];
 
@@ -120,8 +126,7 @@ async function callSearchTool(
 export async function searchCarDeals(config: SearchConfig): Promise<NewListing[]> {
   const mcpPath = process.env.CAR_DEALS_MCP_PATH;
   if (!mcpPath) {
-    console.warn('[mcp-client] CAR_DEALS_MCP_PATH is not set; skipping MCP search');
-    return [];
+    throw new Error('No live source configured. Import permitted JSON listings or configure CAR_DEALS_MCP_PATH.');
   }
 
   const makesModels = parseMakesModels(config.makesModels);
@@ -159,7 +164,7 @@ export async function searchCarDeals(config: SearchConfig): Promise<NewListing[]
           // Dedup by title across zip searches
           let added = 0;
           for (const listing of normalized) {
-            const key = `${listing.year}-${listing.make}-${listing.model}-${listing.price}-${listing.mileage}`;
+            const key = listing.vin || listing.url || `${listing.source}:${listing.externalId}`;
             if (!seenTitles.has(key)) {
               seenTitles.add(key);
               allListings.push(listing);
@@ -168,12 +173,12 @@ export async function searchCarDeals(config: SearchConfig): Promise<NewListing[]
           }
           console.log(`[mcp-client] Got ${normalized.length} results for ${make} ${model} in ${zip} (${added} new)`);
         } catch (err) {
-          console.error(`[mcp-client] Error searching ${make} ${model} in ${zip}:`, err);
+          throw err;
         }
       }
     }
   } catch (err) {
-    console.error('[mcp-client] Failed to connect to MCP server:', err);
+    throw err;
   } finally {
     try {
       await client.close();

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { explainScore } from '@/lib/deal-policy';
+import { searchConfig } from '@/lib/db/schema';
 import { db } from '@/lib/db';
 import { listings, priceHistory, notes } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -22,6 +24,7 @@ export async function GET(
 
   return NextResponse.json({
     ...listing,
+    dealExplanation: explainScore(listing, db.select().from(searchConfig).get()!, db.select().from(listings).all()),
     priceHistory: history,
     notes: notesList,
   });

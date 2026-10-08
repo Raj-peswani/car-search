@@ -2,13 +2,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Truck, List, Star, Settings } from 'lucide-react';
+import { Car, List, Star, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { DashboardStats } from '@/lib/types';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: Truck },
+  { href: '/', label: 'Dashboard', icon: Car },
   { href: '/listings', label: 'Listings', icon: List },
   { href: '/favorites', label: 'Favorites', icon: Star },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -28,7 +28,7 @@ export function NavSidebar() {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:flex-col md:w-16 md:fixed md:inset-y-0 md:left-0 md:z-50 md:border-r md:border-border md:bg-sidebar">
         <div className="flex h-14 items-center justify-center border-b border-border">
-          <Truck className="size-6 text-sidebar-primary" />
+          <Car className="size-6 text-sidebar-primary" />
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-2 pt-4">
           {navItems.map(({ href, label, icon: Icon }) => {

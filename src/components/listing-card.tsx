@@ -113,15 +113,22 @@ export function ListingCard({ listing }: ListingCardProps) {
           <div className="mt-2 flex items-center justify-between">
             <span className="text-base font-bold">{formatPrice(listing.price)}</span>
             {listing.dealScore != null && (
-              <DealScoreBadge score={listing.dealScore} />
+              <DealScoreBadge score={listing.dealExplanation?.score ?? listing.dealScore} />
             )}
           </div>
 
+          {listing.dealExplanation && <div className="mt-2 text-xs space-y-1">
+            <p>{listing.dealExplanation.assessment.verified ? 'Verified filter match' : 'Needs verification'}</p>
+            {listing.dealExplanation.assessment.unknown.map(t => <p key={t} className="text-muted-foreground">{t}</p>)}
+            {listing.dealExplanation.assessment.flags.map(t => <p key={t} className="text-amber-600">{t}</p>)}
+            <p title={listing.dealExplanation.marketBasis}>Market comparison: {listing.dealExplanation.comparableCount} peers</p>
+            <p>Score /10: market {listing.dealExplanation.parts.market.toFixed(1)} · miles {listing.dealExplanation.parts.mileage.toFixed(1)} · history {listing.dealExplanation.parts.history.toFixed(1)} · dealer {listing.dealExplanation.parts.dealer.toFixed(1)} · age {listing.dealExplanation.parts.age.toFixed(1)} · days {listing.dealExplanation.parts.daysOnMarket.toFixed(1)} · fee penalty {listing.dealExplanation.penalty}</p>
+          </div>}
           {/* Details */}
           <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
             <p>{formatMileage(listing.mileage)}</p>
             {listing.location && <p>{listing.location}</p>}
-            <p>Listed {formatDate(listing.firstSeenAt)}</p>
+            <p>First observed {formatDate(listing.firstSeenAt)}</p>
           </div>
         </CardContent>
       </Card>

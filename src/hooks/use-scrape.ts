@@ -15,8 +15,7 @@ export function useTriggerScrape() {
   return useMutation({
     mutationFn: () =>
       fetch('/api/scrape', { method: 'POST' }).then(r => {
-        if (r.status === 409) throw new Error('Scan already in progress');
-        return r.json();
+        return r.json().then(data=>{if(!r.ok) throw new Error(data.error || 'Scan failed'); return data;});
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scrape-status'] });

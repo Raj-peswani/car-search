@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 
 export interface ListingFilters {
   source?: string;
+  verifiedOnly?: boolean;
+  preferredMileage?: boolean;
   priceMin?: string;
   priceMax?: string;
   mileageMin?: string;
@@ -53,6 +55,8 @@ function FilterFields({
 
   return (
     <div className="flex flex-col gap-4">
+      <label className="text-sm flex gap-2"><input type="checkbox" checked={filters.verifiedOnly || false} onChange={e=>update('verifiedOnly',e.target.checked)}/>Only verified title and radius</label>
+      <label className="text-sm flex gap-2"><input type="checkbox" checked={filters.preferredMileage || false} onChange={e=>update('preferredMileage',e.target.checked)}/>Mileage below 100,000</label>
       {/* Source */}
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-muted-foreground">Source</label>
@@ -220,6 +224,8 @@ export function ListingFiltersBar({ filters, onChange }: ListingFiltersProps) {
     <>
       {/* Desktop: horizontal toolbar */}
       <div className="hidden md:flex flex-wrap gap-3 items-end p-3 bg-card rounded-xl ring-1 ring-foreground/10">
+        <label className="text-sm flex gap-2"><input type="checkbox" checked={filters.verifiedOnly || false} onChange={e=>onChange({...filters,verifiedOnly:e.target.checked,page:1})}/>Verified title/radius</label>
+        <label className="text-sm flex gap-2"><input type="checkbox" checked={filters.preferredMileage || false} onChange={e=>onChange({...filters,preferredMileage:e.target.checked,page:1})}/>Below 100k mi</label>
         {/* Source */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-muted-foreground">Source</label>

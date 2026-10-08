@@ -1,80 +1,63 @@
-# Car Search Dashboard
+# SoCal Used-Car Deal Finder
 
-A Next.js dashboard that automatically scrapes Toyota truck listings from KBB, Autotrader, and Facebook Marketplace, scores deals against market comparables, and lets you favorite, annotate, and track price changes.
+Fork of [catesandrew/car-search](https://github.com/catesandrew/car-search), verified October 8, 2026. Next.js 16, React 19, SQLite/Drizzle. Favorites, notes, price history and source parsers are preserved.
 
-Built to help find a used Toyota Tacoma, 4Runner, or Tundra under $15k near Huntington Beach, CA.
+## Run
 
-## Features
+Requires Node 22+ and pnpm 11+. From this directory:
 
-- **Multi-source scraping** — KBB, Autotrader, Facebook Marketplace (Cars.com planned)
-- **Market-relative deal scoring** — compares each listing against similar vehicles (same model, +/-3 years) to determine if price is above or below market median
-- **Automated cron worker** — scrapes every 30 minutes (configurable), deduplicates by VIN or listing URL
-- **Price history tracking** — tracks price changes over time with charts
-- **Favorites and notes** — favorite listings, add call logs and notes
-- **Filter and sort** — by source, price, mileage, year, deal score, status
-- **Grid and table views** — with URL-synced pagination
-
-## Quick Start
-
-```bash
-# Clone
-git clone https://github.com/catesandrew/car-search.git
-cd car-search
-
-# Install dependencies
+```sh
 pnpm install
-
-# Set up the database
 pnpm db:push
 pnpm db:migrate
-
-# Seed with sample data (optional)
-pnpm db:seed
-
-# Configure scrapers (see docs for details)
-cp .env.local.example .env.local
-# Edit .env.local with your MCP server path
-
-# Start the app + cron worker
 pnpm dev
-# Open http://localhost:3000
 ```
 
-## Documentation
+Open http://127.0.0.1:3000. Production: `pnpm build`, then `pnpm start`. App binds to loopback; keep it local (no multi-user authentication). Data is stored in `data/car-search.db`, ignored by Git. Back up existing databases before db:push. Migration seeds defaults only when configuration is empty.
 
-Full documentation is available at [catesandrew.github.io/car-search](https://catesandrew.github.io/car-search/).
+## Search
 
-## Tech Stack
+Default center **Huntington Beach 92648**, **100-mile radius**, configurable in Settings. Advertised price **≤ $12,000**, **2014+**, hard mileage **≤ 120,000**, preferred **<100,000**. Selected models: Toyota Corolla/Camry/Yaris, Honda Civic/Accord/Fit, Hyundai Elantra/Sonata. Toggle models in Settings.
 
-| Layer | Choice |
-|-------|--------|
-| Framework | Next.js 15 (App Router) |
-| Database | SQLite via better-sqlite3 + Drizzle ORM |
-| UI | Tailwind CSS + shadcn/ui |
-| Charts | Recharts |
-| Scraping | MCP SDK + Playwright (FB) |
-| Scheduling | Standalone node-cron worker |
+Reported salvage/rebuilt/lemon/flood/frame/structural damage is excluded. Clean title, one/two owners, personal use, no-accident reports and dealer ratings ≥4 improve the score. Unknown price/year/mileage/title/distance is marked for verification. Known disqualifiers are excluded; use the verified-only filter to hide missing data. “Verified” means supplied data meets filters, not an independent inspection. Distance requires distanceMiles and searchZip matching the configured center. Changing ZIP invalidates old distance claims. No guessed distances.
 
-## Architecture
+## Source status — October 8, 2026
 
-```
-car-search/
-├── src/app/          # Next.js pages + API routes
-├── src/lib/db/       # SQLite schema + Drizzle client
-├── src/lib/scrapers/ # MCP client, FB wrapper, dedup, runner
-├── src/components/   # React components (shadcn/ui)
-├── scripts/          # Cron worker + seed script
-└── docs/             # Docusaurus documentation site
-```
+| Source | Current status |
+|---|---|
+| Permitted JSON exports / manual research | **Working**, tested through Import page/API |
+| Cars.com | Standard Chrome check returned **0 listings**; unverified/unavailable |
+| AutoTrader | Standard Chrome check returned **0 listings**; unverified/unavailable |
+| KBB | Standard Chrome check returned **0 listings**; unverified/unavailable |
+| Facebook Marketplace | Automation disabled/unsupported; permitted import only |
+| CarGurus, Craigslist, eBay, auto.dev | No adapters |
 
-## Forked Dependencies
+**No live feed verified.** Zero results may mean access restrictions or changed markup, not absence of cars. Automated polling is off by default.
 
-This project uses two forked scrapers with improvements:
+Original parsers are preserved in `vendor/car-deals-mcp`, from [catesandrew/car_deals_search_mcp](https://github.com/catesandrew/car_deals_search_mcp), upstream SiddarthaKoppaka. MIT license included. **Removed stealth plugins and browser security overrides.** No CAPTCHA bypass, proxies, disposable accounts or login automation. Facebook adapter is retained for reference but cannot be enabled by the app.
 
-- **[catesandrew/car_deals_search_mcp](https://github.com/catesandrew/car_deals_search_mcp)** — Forked from [SiddarthaKoppaka/car_deals_search_mcp](https://github.com/SiddarthaKoppaka/car_deals_search_mcp). Added structured JSON output, search radius support, all sources enabled by default, improved wait strategies, and image extraction.
+Optional future authorized source: copy .env.local.example to .env.local, set CAR_DEALS_MCP_PATH to the absolute path of **vendor/car-deals-mcp/src/server.js** (upstream's dist/index.js path is incorrect), and choose CAR_DEALS_SOURCES. Set PUPPETEER_EXECUTABLE_PATH to installed Chrome, or use `pnpm --filter car-deals-mcp exec puppeteer browsers install chrome`. Test Scan Now first. Start `pnpm worker` only after verifying access/permission; it uses the configured interval. Stop when restricted; no access bypasses.
 
-- **[catesandrew/Facebook-Marketplace_Scraper](https://github.com/catesandrew/Facebook-Marketplace_Scraper)** — Forked from [kevmaindev/Facebook-Marketplace_Scraper](https://github.com/kevmaindev/Facebook-Marketplace_Scraper). Added `capture_session.py` for manual login/session capture and `search_for_app.py` for headless CLI scraping with JSON output, configurable radius, and vehicle type filtering.
+## Import
 
-## License
+Open `/import`, paste an array. Required: source and at least one of id/vin/url. **Price is dollars**, stored internally in cents. Optional: year/make/model/mileage/location, titleStatus, description, ownerCount, dealerRating (0–5), oneOwner/noAccidents/personalUse, distanceMiles/searchZip, listedAt (ISO timestamp), mandatoryFeesCents, and boolean salvage/rebuilt/lemon/flood/frameDamage/structuralDamage. Omitted history stays unknown. Maximum 500 records / 2 MB. `examples/demo-listings.json` is clearly **fictional** test data, not inventory.
 
-MIT
+## Transparent score (0–10)
+
+| Component | Points |
+|---|---|
+| Market | 0–4: clamp(2 + 8 × (median − price)/median); neutral 2 with fewer than 3 peers |
+| Mileage | 0–2: clamp(2 × (120000 − mileage)/120000); unknown 1 |
+| History | 0–2: clean .6; one owner .5 (two .25); personal use .4; no accidents .5; unknown gets no bonus |
+| Dealer | 0–1: clamp((rating − 3)/2); unknown .5 |
+| Age | 0–.5: clamp(.5 × (20 − age)/20); unknown .25 |
+| Days on market | 0–.5: min(.5, days/120); unknown .25; uses actual source date |
+| Fee/conditional-price risk | Subtract 1 when detected |
+
+Components appear on cards/detail pages. Peers exclude self, use same make/base model, ±2 years, ±30k miles, seen within 30 days, matching ZIP and distance ≤150 miles, no detected damage/add-ons. Fictional and real peers never mix. Asking-price comparisons are not appraisals or sale prices; budget-limited feeds can bias medians. First-observed date is separate from actual days on market.
+
+Mandatory fees/protection packages/reconditioning and conditional financing/down-payment prices are flagged. No invented OTD total: advertised prices exclude taxes/registration; request an itemized OTD quote. Detection is limited to supplied data/text. Verify title/history and get an independent inspection.
+
+## Checks
+
+`pnpm test` covers hard limits, missing evidence, damage negation, market exclusions, normalization and import validation. `pnpm build` checks production. Runtime checks performed: configuration round-trip, repeat imports without duplicates, damage exclusion, add-on flags, favorites, price history, comparables, radius and statistics. Upstream docs retain the original truck-search documentation; this README describes the fork. Upstream declares MIT.

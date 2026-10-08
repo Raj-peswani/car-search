@@ -14,6 +14,8 @@ const VIEW_KEY = 'listings-view';
 
 function filtersToParams(filters: ListingFilters): Record<string, string> {
   const params: Record<string, string> = {};
+  if (filters.verifiedOnly) params.verifiedOnly = 'true';
+  if (filters.preferredMileage) params.preferredMileage = 'true';
   if (filters.source) params.source = filters.source;
   if (filters.priceMin) params.priceMin = String(Number(filters.priceMin) * 100);
   if (filters.priceMax) params.priceMax = String(Number(filters.priceMax) * 100);
@@ -25,7 +27,7 @@ function filtersToParams(filters: ListingFilters): Record<string, string> {
   if (filters.viewStatus) params.viewStatus = filters.viewStatus;
   if (filters.isFavorited) params.isFavorited = 'true';
   if (filters.showDismissed) params.isDismissed = 'true';
-  params.sortBy = filters.sortBy ?? 'first_seen_at';
+  params.sortBy = filters.sortBy ?? 'deal_score';
   params.sortDir = filters.sortDir ?? 'desc';
   params.page = String(filters.page ?? 1);
   params.limit = '20';
@@ -63,7 +65,7 @@ function ListingsContent() {
 
   const [view, setView] = useState<'grid' | 'table'>('grid');
   const [filters, setFilters] = useState<ListingFilters>({
-    sortBy: 'first_seen_at',
+    sortBy: 'deal_score',
     sortDir: 'desc',
     page: 1,
   });
@@ -82,6 +84,8 @@ function ListingsContent() {
   // Sync filters from URL on mount
   useEffect(() => {
     const f: ListingFilters = {
+      verifiedOnly: searchParams.get('verifiedOnly') === 'true',
+      preferredMileage: searchParams.get('preferredMileage') === 'true',
       source: searchParams.get('source') ?? undefined,
       priceMin: searchParams.get('priceMin') ?? undefined,
       priceMax: searchParams.get('priceMax') ?? undefined,
@@ -93,7 +97,7 @@ function ListingsContent() {
       viewStatus: searchParams.get('viewStatus') ?? undefined,
       isFavorited: searchParams.get('isFavorited') === 'true' || undefined,
       showDismissed: searchParams.get('showDismissed') === 'true' || undefined,
-      sortBy: searchParams.get('sortBy') ?? 'first_seen_at',
+      sortBy: searchParams.get('sortBy') ?? 'deal_score',
       sortDir: (searchParams.get('sortDir') as 'asc' | 'desc') ?? 'desc',
       page: Number(searchParams.get('page') ?? '1') || 1,
     };
@@ -113,6 +117,8 @@ function ListingsContent() {
 
   const syncUrl = (f: ListingFilters) => {
     const url = new URLSearchParams();
+    if (f.verifiedOnly) url.set('verifiedOnly', 'true');
+    if (f.preferredMileage) url.set('preferredMileage', 'true');
     if (f.source) url.set('source', f.source);
     if (f.priceMin) url.set('priceMin', f.priceMin);
     if (f.priceMax) url.set('priceMax', f.priceMax);
@@ -124,7 +130,7 @@ function ListingsContent() {
     if (f.viewStatus) url.set('viewStatus', f.viewStatus);
     if (f.isFavorited) url.set('isFavorited', 'true');
     if (f.showDismissed) url.set('showDismissed', 'true');
-    if (f.sortBy && f.sortBy !== 'first_seen_at') url.set('sortBy', f.sortBy);
+    if (f.sortBy && f.sortBy !== 'deal_score') url.set('sortBy', f.sortBy);
     if (f.sortDir && f.sortDir !== 'desc') url.set('sortDir', f.sortDir);
     if (f.page && f.page > 1) url.set('page', String(f.page));
     router.replace(`/listings?${url.toString()}`, { scroll: false });

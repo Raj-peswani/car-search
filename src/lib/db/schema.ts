@@ -2,6 +2,7 @@ import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core
 
 export const listings = sqliteTable('listings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  evidence: text('evidence'),
   vin: text('vin'),
   externalId: text('external_id'),
   source: text('source').notNull(), // 'cars.com' | 'autotrader' | 'kbb' | 'facebook'
@@ -16,9 +17,9 @@ export const listings = sqliteTable('listings', {
   location: text('location'),
   dealerName: text('dealer_name'),
   dealerType: text('dealer_type'), // 'dealer' | 'private'
-  oneOwner: integer('one_owner', { mode: 'boolean' }).default(false),
-  noAccidents: integer('no_accidents', { mode: 'boolean' }).default(false),
-  personalUse: integer('personal_use', { mode: 'boolean' }).default(false),
+  oneOwner: integer('one_owner', { mode: 'boolean' }),
+  noAccidents: integer('no_accidents', { mode: 'boolean' }),
+  personalUse: integer('personal_use', { mode: 'boolean' }),
   dealRating: text('deal_rating'),
   dealScore: real('deal_score'),
   viewStatus: text('view_status').default('new'), // 'new' | 'seen'
@@ -73,11 +74,11 @@ export const searchConfig = sqliteTable('search_config', {
   id: integer('id').primaryKey().default(1),
   zip: text('zip'),
   fbLocation: text('fb_location'),
-  radiusMiles: integer('radius_miles').default(150),
-  priceMax: integer('price_max').default(1500000), // $15,000 in cents
-  mileageMax: integer('mileage_max').default(200000),
-  yearMin: integer('year_min').default(2005),
-  yearMax: integer('year_max').default(2025),
+  radiusMiles: integer('radius_miles').default(100),
+  priceMax: integer('price_max').default(1200000), // $15,000 in cents
+  mileageMax: integer('mileage_max').default(120000),
+  yearMin: integer('year_min').default(2014),
+  yearMax: integer('year_max').default(2026),
   makesModels: text('makes_models').default('["Toyota Tacoma","Toyota 4Runner"]'),
   cronInterval: integer('cron_interval').default(30), // minutes
   fbEnabled: integer('fb_enabled', { mode: 'boolean' }).default(false),

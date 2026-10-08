@@ -79,14 +79,14 @@ function parseIntOrNull(raw: unknown): number | null {
   return null;
 }
 
-function parseBool(raw: unknown): boolean {
+function parseBool(raw: unknown): boolean | undefined {
   if (typeof raw === 'boolean') return raw;
   if (typeof raw === 'string') {
     const lower = raw.toLowerCase().trim();
     return lower === 'true' || lower === 'yes' || lower === '1';
   }
   if (typeof raw === 'number') return raw !== 0;
-  return false;
+  return undefined;
 }
 
 function parseString(raw: unknown): string | null {
@@ -115,19 +115,29 @@ export function normalizeMcpListing(raw: Record<string, unknown>): NewListing {
   const externalId = parseString(raw.id ?? raw.listing_id ?? raw.external_id);
   const source = (parseString(raw.source ?? raw.platform) ?? 'mcp').toLowerCase();
   const url = parseString(raw.url ?? raw.listing_url ?? raw.link);
-  const imageUrl = parseString(raw.image_url ?? raw.image ?? raw.photo_url ?? raw.thumbnail);
+  const imageUrl = parseString(raw.imageUrl ?? raw.image_url ?? raw.image ?? raw.photo_url ?? raw.thumbnail);
   const trim = parseString(raw.trim ?? raw.trim_level ?? raw.package);
   const location = parseString(raw.location ?? raw.city ?? raw.dealer_location);
-  const dealerName = parseString(raw.dealer_name ?? raw.seller_name ?? raw.dealer ?? raw.seller);
-  const dealerType = parseString(raw.dealer_type ?? raw.seller_type);
+  const dealerName = parseString(raw.dealerName ?? raw.dealer_name ?? raw.seller_name ?? raw.dealer ?? raw.seller);
+  const dealerType = parseString(raw.dealerType ?? raw.dealer_type ?? raw.seller_type);
 
-  const dealRating = normalizeDealRating(raw.deal_rating ?? raw.price_rating ?? raw.deal ?? raw.rating);
+  const dealRating = normalizeDealRating(raw.dealRating ?? raw.deal_rating ?? raw.price_rating ?? raw.deal ?? raw.rating);
 
-  const oneOwner = parseBool(raw.one_owner ?? raw.single_owner ?? raw.one_owner_vehicle);
-  const noAccidents = parseBool(raw.no_accidents ?? raw.accident_free ?? raw.clean_history);
-  const personalUse = parseBool(raw.personal_use ?? raw.personal_use_only ?? raw.non_commercial);
+  const oneOwner = parseBool(raw.isOneOwner ?? raw.oneOwner ?? raw.one_owner ?? raw.single_owner ?? raw.one_owner_vehicle);
+  const noAccidents = parseBool(raw.noAccidents ?? raw.no_accidents ?? raw.accident_free ?? raw.clean_history);
+  const personalUse = parseBool(raw.personalUse ?? raw.personal_use ?? raw.personal_use_only ?? raw.non_commercial);
 
+  const evidence = JSON.stringify({
+    titleStatus: raw.titleStatus ?? raw.title_status ?? raw.title_brand,
+    description: raw.description ?? raw.disclaimer ?? raw.seller_comments,
+    ownerCount: raw.ownerCount ?? raw.owner_count, dealerRating: raw.dealerRating ?? raw.dealer_rating,
+    distanceMiles: raw.distanceMiles ?? raw.distance_miles, searchZip: raw.searchZip ?? raw.search_zip,
+    listedAt: raw.listedAt ?? raw.listed_at, mandatoryFeesCents: raw.mandatoryFeesCents,
+    salvage: raw.salvage, rebuilt: raw.rebuilt, lemon: raw.lemon, flood: raw.flood,
+    frameDamage: raw.frameDamage ?? raw.frame_damage, structuralDamage: raw.structuralDamage ?? raw.structural_damage,
+  });
   return {
+    evidence,
     vin,
     externalId,
     source,

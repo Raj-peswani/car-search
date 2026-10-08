@@ -2,7 +2,6 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../db';
 import { scrapeRuns, searchConfig } from '../db/schema';
 import { searchCarDeals } from './mcp-client';
-import { searchFacebook } from './facebook';
 import { upsertListings } from './dedup';
 import type { ScrapeResult, SearchConfig } from '../types';
 
@@ -18,6 +17,7 @@ function loadSearchConfig(): SearchConfig | null {
   return {
     id: row.id,
     zip: row.zip ?? null,
+    fbLocation: row.fbLocation ?? null,
     radiusMiles: row.radiusMiles ?? null,
     priceMax: row.priceMax ?? null,
     mileageMax: row.mileageMax ?? null,
@@ -92,16 +92,7 @@ export async function runScrape(): Promise<{ runId: number; result: ScrapeResult
       throw new Error('No search config found in DB');
     }
 
-    // Facebook scrape (first — faster, separate browser)
-    console.log(`[runner] fbEnabled=${config.fbEnabled}, checking Facebook...`);
-    if (config.fbEnabled) {
-      console.log(`[runner] Starting Facebook scrape (runId=${runId})`);
-      const fbListings = await searchFacebook(config);
-      console.log(`[runner] Facebook returned ${fbListings.length} listings`);
-      const fbResult = await upsertListings(fbListings, 'facebook');
-      finalResult = mergeScrapeResults(finalResult, fbResult);
-    }
-
+    if (config.fbEnabled) throw new Error('Facebook automation is unsupported; use a permitted JSON import.');
     // MCP scrape (Cars.com, Autotrader, KBB)
     console.log(`[runner] Starting MCP scrape (runId=${runId})`);
     const mcpListings = await searchCarDeals(config);

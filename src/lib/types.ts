@@ -1,4 +1,6 @@
 export interface Listing {
+  evidence?: string | null;
+  dealExplanation?: ReturnType<typeof import("./deal-policy").explainScore>;
   id: number;
   vin: string | null;
   externalId: string | null;
@@ -95,6 +97,7 @@ export interface PaginatedResponse<T> {
 }
 
 export interface NewListing {
+  evidence?: string | null;
   vin?: string | null;
   externalId?: string | null;
   source: string;

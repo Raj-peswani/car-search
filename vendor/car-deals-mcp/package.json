@@ -1,0 +1,28 @@
+{
+  "name": "car-deals-mcp",
+  "version": "1.0.0",
+  "description": "An MCP server that searches for car deals from Cars.com, Autotrader, and KBB",
+  "main": "src/server.js",
+  "bin": {
+    "car-deals-mcp": "src/server.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node -e \"const { scrapeCarscom } = require('./src/scraper.js'); scrapeCarscom({ make: 'Toyota', model: 'Camry' }, 3).then(r => r.forEach(l => console.log(l.format())))\""
+  },
+  "keywords": [
+    "mcp",
+    "car-deals",
+    "scraper",
+    "cars.com",
+    "autotrader",
+    "kbb"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.3",
+    "puppeteer": "^24.32.1"
+  }
+}

@@ -17,7 +17,7 @@ export function useUpdateConfig() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }).then(async r => { const data = await r.json(); if (!r.ok) throw new Error(data.error || "Save failed"); return data; }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['config'] });
       queryClient.invalidateQueries({ queryKey: ['listings'] });

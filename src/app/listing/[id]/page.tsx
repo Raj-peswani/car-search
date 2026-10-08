@@ -32,7 +32,7 @@ function formatMileage(miles: number | null): string {
 }
 
 function HistoryFlag({ label, value }: { label: string; value: boolean | null }) {
-  if (value == null) return null;
+  if (value == null) return <p className="text-sm text-muted-foreground">{label}: unknown</p>;
   return (
     <div className="flex items-center gap-1.5 text-sm">
       {value ? (
@@ -262,6 +262,13 @@ export default function ListingDetailPage({
             </section>
           )}
 
+          {listing.dealExplanation && <Card><CardHeader><CardTitle>Deal score & verification</CardTitle></CardHeader><CardContent className="text-sm space-y-2">
+            <p>{listing.dealExplanation.score}/10 · {listing.dealExplanation.marketBasis}</p>
+            {Object.entries(listing.dealExplanation.parts).map(([k,v])=><p key={k}>{k}: {v.toFixed(2)}</p>)}
+            <p>Add-on penalty: {listing.dealExplanation.penalty}</p>
+            {[...listing.dealExplanation.assessment.excluded,...listing.dealExplanation.assessment.unknown,...listing.dealExplanation.assessment.flags].map(t=><p key={t}>{t}</p>)}
+            <p>Title and history are seller/source claims. Advertised price excludes taxes, registration and possible fees. Ask for an itemized out-the-door quote.</p>
+          </CardContent></Card>}
           {/* History flags */}
           {(listing.oneOwner != null || listing.noAccidents != null || listing.personalUse != null) && (
             <section className="bg-card rounded-xl ring-1 ring-foreground/10 p-4 flex flex-col gap-3">

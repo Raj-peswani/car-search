@@ -4,6 +4,7 @@ import { scrapeRuns } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function POST() {
+  if (!process.env.CAR_DEALS_MCP_PATH) return NextResponse.json({error:'No live source configured. Use Import listings; see source status.'},{status:503});
   // Check for running scrape (mutex)
   const running = await db
     .select()
