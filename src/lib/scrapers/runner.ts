@@ -1,6 +1,8 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db';
 import { scrapeRuns, searchConfig } from '../db/schema';
+import { searchAutoDev } from './auto-dev';
+import { connectedAutoDevKey } from '../source-connection';
 import { searchCarDeals } from './mcp-client';
 import { upsertListings } from './dedup';
 import type { ScrapeResult, SearchConfig } from '../types';
@@ -73,7 +75,7 @@ export async function runScrape(): Promise<{ runId: number; result: ScrapeResult
   const inserted = db
     .insert(scrapeRuns)
     .values({
-      source: 'all',
+      source: connectedAutoDevKey() ? 'auto.dev' : 'all',
       status: 'running',
       startedAt: nowIso,
       newCount: 0,
@@ -95,7 +97,8 @@ export async function runScrape(): Promise<{ runId: number; result: ScrapeResult
     if (config.fbEnabled) throw new Error('Facebook automation is unsupported; use a permitted JSON import.');
     // MCP scrape (Cars.com, Autotrader, KBB)
     console.log(`[runner] Starting MCP scrape (runId=${runId})`);
-    const mcpListings = await searchCarDeals(config);
+    const apiKey = connectedAutoDevKey();
+    const mcpListings = apiKey ? await searchAutoDev(config, {apiKey}) : await searchCarDeals(config);
     console.log(`[runner] MCP returned ${mcpListings.length} listings`);
     const mcpResult = await upsertListings(mcpListings, 'mcp');
     finalResult = mergeScrapeResults(finalResult, mcpResult);

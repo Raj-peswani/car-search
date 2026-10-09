@@ -44,7 +44,7 @@ export default function DashboardPage() {
       </div>
 
       <section className="rounded-xl border p-4 text-sm space-y-2">
-        <p><strong>Live sources unavailable:</strong> Cars.com, AutoTrader and KBB returned no listings in the October 8, 2026 check. Import permitted listings to start; automatic scanning is off by default.</p>
+        <p><strong>Live dealer inventory:</strong> <Link href="/sources" className="underline text-primary">Connect auto.dev</Link> to activate searches. Requires your API key; automatic scanning stays off.</p>
         <p>Prefer mileage below 100,000, clean title, low owners, personal use and dealers rated 4+.</p>
         <p>Unknown title or distance is marked for verification. Scores compare asking prices, not sale prices. Advertised prices exclude tax, registration and possible fees.</p>
         <Link href="/import" className="text-primary underline">Import permitted listings / view source status</Link>

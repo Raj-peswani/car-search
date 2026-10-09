@@ -26,6 +26,7 @@ Reported salvage/rebuilt/lemon/flood/frame/structural damage is excluded. Clean 
 | Source | Current status |
 |---|---|
 | Permitted JSON exports / manual research | **Working**, tested through Import page/API |
+| auto.dev official API | Integrated; needs your free-account API key; live results unverified until connected |
 | Cars.com | Standard Chrome check returned **0 listings**; unverified/unavailable |
 | AutoTrader | Standard Chrome check returned **0 listings**; unverified/unavailable |
 | KBB | Standard Chrome check returned **0 listings**; unverified/unavailable |
@@ -37,6 +38,14 @@ Reported salvage/rebuilt/lemon/flood/frame/structural damage is excluded. Clean 
 Original parsers are preserved in `vendor/car-deals-mcp`, from [catesandrew/car_deals_search_mcp](https://github.com/catesandrew/car_deals_search_mcp), upstream SiddarthaKoppaka. MIT license included. **Removed stealth plugins and browser security overrides.** No CAPTCHA bypass, proxies, disposable accounts or login automation. Facebook adapter is retained for reference but cannot be enabled by the app.
 
 Optional future authorized source: copy .env.local.example to .env.local, set CAR_DEALS_MCP_PATH to the absolute path of **vendor/car-deals-mcp/src/server.js** (upstream's dist/index.js path is incorrect), and choose CAR_DEALS_SOURCES. Set PUPPETEER_EXECUTABLE_PATH to installed Chrome, or use `pnpm --filter car-deals-mcp exec puppeteer browsers install chrome`. Test Scan Now first. Start `pnpm worker` only after verifying access/permission; it uses the configured interval. Stop when restricted; no access bypasses.
+
+## Connect live inventory
+
+Open http://127.0.0.1:3000/sources. Create an auto.dev Free account, obtain your API key, and paste it in the local connection screen. The key is stored in the ignored .env.local file, never returned by the status API or committed. Alternatively set AUTO_DEV_API_KEY in .env.local. The app reads the saved key without a restart. Scan Now then calls the official v2 listings endpoint with your filters. API errors/quota limits are reported without retries. At most three 20-record pages per scan; additional inventory may require later scans. Automatic polling remains off. Source: https://docs.auto.dev/v2/reference/searchVehicleListings.
+
+The provider's pricing page currently lists 1,000 free calls/month, capped, no card required: https://www.auto.dev/pricing. Check current terms and quotas before signup. Three calls per hourly scan can exceed that quota, so use manual scans. No paid plan is selected by this app.
+
+Radius evidence from this adapter means the provider applied the requested ZIP/radius, not a fabricated exact distance. Changing ZIP or narrowing radius invalidates broader query evidence. Title and history remain unknown unless supplied; a CARFAX link alone is never treated as clean history. Dealer rating and title history are not inferred from undocumented API fields. Tests use fixtures; no real feed is claimed before an authenticated scan succeeds.
 
 ## Import
 

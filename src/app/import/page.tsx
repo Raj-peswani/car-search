@@ -4,6 +4,7 @@ import Link from 'next/link';
 export default function ImportPage() {
   const [text,setText] = useState(''), [message,setMessage] = useState('');
   return <div className="space-y-5 max-w-3xl">
+    <Link href="/sources" className="underline text-primary">Connect a live auto.dev feed</Link>
     <h1 className="text-2xl font-bold">Import listings & source status</h1>
     <p>Paste a JSON array from a permitted export or your own research. Price is in dollars; mileage and distance are in miles. Include searchZip with distanceMiles to identify its center. Omitted history stays unknown.</p>
     <pre className="text-xs bg-muted rounded p-4 overflow-auto">{JSON.stringify([{source:'manual',id:'your-id',year:2016,make:'Toyota',model:'Corolla',price:10500,mileage:85000,location:'Irvine, CA',titleStatus:'clean',distanceMiles:20,searchZip:'92648',dealerRating:4.2,ownerCount:1,personalUse:true}],null,2)}</pre>

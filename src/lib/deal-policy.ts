@@ -3,6 +3,7 @@ import type { Listing, SearchConfig } from './types';
 export const VEHICLES = ['Toyota Corolla', 'Toyota Camry', 'Toyota Yaris', 'Honda Civic', 'Honda Accord', 'Honda Fit', 'Hyundai Elantra', 'Hyundai Sonata'];
 export interface Evidence {
   titleStatus?: string; description?: string; ownerCount?: number; dealerRating?: number;
+  radiusFilterMiles?: number; distanceBasis?: string; carfaxUrl?: string;
   distanceMiles?: number; searchZip?: string; listedAt?: string; mandatoryFeesCents?: number;
   salvage?: boolean; rebuilt?: boolean; lemon?: boolean; flood?: boolean; frameDamage?: boolean; structuralDamage?: boolean;
 }
@@ -40,8 +41,9 @@ export function assessListing(row: Listing, config: SearchConfig) {
   if (!row.year) unknown.push('Year missing');
   else if (row.year < Math.max(config.yearMin ?? 2014, 2014) || row.year > (config.yearMax ?? new Date().getFullYear())) excluded.push('Year outside range');
   excluded.push(...riskFlags(row).map(f => `Reported ${f}`));
-  if (e.distanceMiles == null || e.searchZip !== config.zip) unknown.push('Distance from selected ZIP unverified');
-  else if (e.distanceMiles > (config.radiusMiles ?? 100)) excluded.push('Outside search radius');
+  if (e.searchZip !== config.zip) unknown.push('Distance from selected ZIP unverified');
+  else if (e.distanceMiles != null) { if (e.distanceMiles > (config.radiusMiles ?? 100)) excluded.push('Outside search radius'); }
+  else if (e.radiusFilterMiles == null || e.radiusFilterMiles > (config.radiusMiles ?? 100)) unknown.push('Distance from selected ZIP unverified');
   if (!e.titleStatus) unknown.push('Title unverified');
   const flags = feeFlags(row);
   return { eligible: !excluded.length, verified: !excluded.length && !unknown.length, excluded, unknown, flags, preferredMileage: row.mileage != null && row.mileage < 100000 };
@@ -54,7 +56,7 @@ export function comparableRows(row: Listing, rows: Listing[], now = new Date()) 
     && r.mileage != null && row.mileage != null && Math.abs(r.mileage - row.mileage) <= 30000
     && (r.price || 0) > 0 && !riskFlags(r).length && !feeFlags(r).length
     && evidenceOf(r).searchZip === evidenceOf(row).searchZip && evidenceOf(r).searchZip != null
-    && evidenceOf(r).distanceMiles != null && evidenceOf(r).distanceMiles! <= 150
+    && (evidenceOf(r).distanceMiles ?? evidenceOf(r).radiusFilterMiles ?? Infinity) <= 150
     && !r.isDismissed && now.getTime() - Date.parse(r.lastSeenAt) < 30 * 86400000
     && r.source.startsWith('demo') === row.source.startsWith('demo'));
 }

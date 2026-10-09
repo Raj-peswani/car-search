@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Car, List, Star, Settings } from 'lucide-react';
+import { Car, List, Star, Settings, Radio } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { DashboardStats } from '@/lib/types';
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: Car },
   { href: '/listings', label: 'Listings', icon: List },
   { href: '/favorites', label: 'Favorites', icon: Star },
+  { href: '/sources', label: 'Live Sources', icon: Radio },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
